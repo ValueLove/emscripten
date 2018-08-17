@@ -47,7 +47,7 @@ else:
 __rootpath__ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(__rootpath__)
 
-from tools.shared import EM_BUILD_VERBOSE, EM_CONFIG, TEMP_DIR, EMCC, DEBUG, PYTHON, LLVM_TARGET, ASM_JS_TARGET, EMSCRIPTEN_TEMP_DIR, CANONICAL_TEMP_DIR, WASM_TARGET, SPIDERMONKEY_ENGINE, WINDOWS
+from tools.shared import EM_CONFIG, TEMP_DIR, EMCC, DEBUG, PYTHON, LLVM_TARGET, ASM_JS_TARGET, EMSCRIPTEN_TEMP_DIR, CANONICAL_TEMP_DIR, WASM_TARGET, SPIDERMONKEY_ENGINE, WINDOWS
 from tools.shared import asstr, get_canonical_temp_dir, Building, run_process, limit_size, try_delete, to_cc, asbytes, safe_copy, Settings
 from tools.line_endings import check_line_endings
 from tools import jsrun, shared
@@ -65,17 +65,6 @@ logger = logging.getLogger(__file__)
 # run using another browser command line than the default system browser.
 # Setting '0' as the browser disables running a browser (but we still see tests compile)
 emscripten_browser = os.environ.get('EMSCRIPTEN_BROWSER')
-
-
-if emscripten_browser:
-  cmd = shlex.split(emscripten_browser)
-
-  def run_in_other_browser(url):
-    Popen(cmd + [url])
-
-  if EM_BUILD_VERBOSE >= 3:
-    print("using Emscripten browser: " + str(cmd), file=sys.stderr)
-  webbrowser.open_new = run_in_other_browser
 
 
 # checks if browser testing is enabled
@@ -866,6 +855,16 @@ class BrowserCore(RunnerCore):
     self.harness_port = int(os.environ.get('EMCC_BROWSER_HARNESS_PORT', '9999'))
     if not has_browser():
       return
+    if emscripten_browser:
+      cmd = shlex.split(emscripten_browser)
+
+      def run_in_other_browser(url):
+        Popen(cmd + [url])
+
+      webbrowser.open_new = run_in_other_browser
+      print("Using Emscripten browser: " + str(cmd))
+    else:
+      print("Using default system browser")
     self.browser_timeout = 30
     self.harness_queue = multiprocessing.Queue()
     self.harness_server = multiprocessing.Process(target=harness_server_func, args=(self.harness_queue, self.harness_port))
